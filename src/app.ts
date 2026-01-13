@@ -14,6 +14,9 @@ import conversationsRoutes from './modules/conversations/conversations.routes';
 import messagesRoutes from './modules/messages/messages.routes';
 import onboardingRoutes from './modules/onboarding/onboarding.routes';
 import adminRoutes from './modules/admin/admin.routes';
+import projectsRoutes from './modules/projects/projects.routes';
+import sectionsRoutes from './modules/sections/sections.routes';
+import cardsRoutes from './modules/cards/cards.routes';
 
 const app: Application = express();
 
@@ -53,6 +56,9 @@ app.use('/api/conversations', conversationsRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/projects', projectsRoutes);
+app.use('/api/sections', sectionsRoutes);
+app.use('/api/cards', cardsRoutes);
 
 // 404 handler
 app.use('*', (_req, res) => {
