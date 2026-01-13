@@ -5,6 +5,11 @@ import { logger } from './utils/logger';
 
 const PORT = env.PORT || 3000;
 
+import { startReminderJob } from './jobs/reminder.job';
+
+// Start Background Jobs
+startReminderJob();
+
 async function startServer() {
     try {
         // Test database connection

@@ -28,6 +28,8 @@ export class CardsService {
                 description: data.description,
                 priority: data.priority || 'MEDIUM',
                 dueDate: data.dueDate ? new Date(data.dueDate) : null,
+                reminderEnabled: data.reminderEnabled || false,
+                reminderDaysBefore: data.reminderDaysBefore,
                 position,
             },
         });
@@ -50,13 +52,23 @@ export class CardsService {
             throw new Error('Card not found');
         }
 
+        // Check if reminder settings or due date changed
+        const reminderSettingsChanged =
+            data.reminderEnabled !== undefined ||
+            data.reminderDaysBefore !== undefined ||
+            data.dueDate !== undefined;
+
         const updated = await prisma.card.update({
             where: { id },
             data: {
                 title: data.title,
                 description: data.description,
                 priority: data.priority,
-                dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
+                dueDate: data.dueDate !== undefined ? (data.dueDate ? new Date(data.dueDate) : null) : undefined,
+                reminderEnabled: data.reminderEnabled,
+                reminderDaysBefore: data.reminderDaysBefore,
+                // Reset reminderSent if reminder settings or due date changed
+                reminderSent: reminderSettingsChanged ? false : undefined,
             },
         });
 

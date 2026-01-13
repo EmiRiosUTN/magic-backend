@@ -10,6 +10,8 @@ export const createCardSchema = z.object({
     description: z.string().max(5000).optional(),
     priority: priorityEnum.optional(),
     dueDate: z.string().datetime().optional(),
+    reminderEnabled: z.boolean().optional(),
+    reminderDaysBefore: z.number().int().min(0).max(365).optional(),
 });
 
 // Update Card Schema
@@ -18,6 +20,8 @@ export const updateCardSchema = z.object({
     description: z.string().max(5000).optional().nullable(),
     priority: priorityEnum.optional(),
     dueDate: z.string().datetime().optional().nullable(),
+    reminderEnabled: z.boolean().optional(),
+    reminderDaysBefore: z.number().int().min(0).max(365).optional().nullable(),
 });
 
 // Move Card Schema (for drag & drop between sections)

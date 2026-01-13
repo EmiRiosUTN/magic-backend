@@ -27,6 +27,7 @@ model User {
   conversations        Conversation[]
   createdAgents        Agent[]           @relation("CreatedAgents")
   projects             Project[]
+  reminders            Reminder[]
 
   @@map("users")
 }
@@ -49,6 +50,7 @@ model UserSettings {
   id        String   @id @default(uuid())
   userId    String   @unique @map("user_id")
   language  Language @default(ES)
+  notificationEmail String? @map("notification_email")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -207,18 +209,38 @@ model Section {
 }
 
 model Card {
-  id          String    @id @default(uuid())
-  sectionId   String    @map("section_id")
-  title       String
-  description String?   @db.Text
-  position    Int
-  priority    Priority  @default(MEDIUM)
-  dueDate     DateTime? @map("due_date")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id                String    @id @default(uuid())
+  sectionId         String    @map("section_id")
+  title             String
+  description       String?   @db.Text
+  position          Int
+  priority          Priority  @default(MEDIUM)
+  dueDate           DateTime? @map("due_date")
+  reminderEnabled   Boolean   @default(false) @map("reminder_enabled")
+  reminderDaysBefore Int?     @map("reminder_days_before")
+  reminderSent      Boolean   @default(false) @map("reminder_sent")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
-  section     Section   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  section           Section   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
   @@index([sectionId, position])
+  @@index([dueDate, reminderEnabled, reminderSent])
   @@map("cards")
+}
+
+model Reminder {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  title       String
+  description String?  @db.Text
+  triggerAt   DateTime @map("trigger_at")
+  isSent      Boolean  @default(false) @map("is_sent")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, triggerAt])
+  @@map("reminders")
 }

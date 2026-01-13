@@ -9,5 +9,6 @@ const adminController = new AdminController();
 router.get('/stats/overview', authenticate, requireAdmin, adminController.getOverviewStats.bind(adminController));
 router.get('/stats/users', authenticate, requireAdmin, adminController.getUserStats.bind(adminController));
 router.get('/stats/agents', authenticate, requireAdmin, adminController.getAgentStats.bind(adminController));
+router.post('/email-config', authenticate, requireAdmin, adminController.updateEmailConfig.bind(adminController));
 
 export default router;
