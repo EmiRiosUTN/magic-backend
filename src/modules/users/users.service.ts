@@ -22,13 +22,24 @@ export class UsersService {
             onboardingCompleted: user.onboardingCompleted,
             subscriptionType: user.subscriptionType,
             language: user.settings?.language || 'ES',
+            notificationEmail: user.settings?.notificationEmail,
         };
     }
 
-    async updateProfile(userId: string, data: { fullName?: string }) {
+    async updateProfile(userId: string, data: { fullName?: string; notificationEmail?: string }) {
         const user = await prisma.user.update({
             where: { id: userId },
-            data,
+            data: {
+                fullName: data.fullName,
+                settings: {
+                    update: {
+                        notificationEmail: data.notificationEmail,
+                    }
+                }
+            },
+            include: {
+                settings: true
+            }
         });
 
         return user;

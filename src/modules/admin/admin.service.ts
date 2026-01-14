@@ -101,4 +101,37 @@ export class AdminService {
             aiProvider: agent.aiProvider,
         }));
     }
+    async updateEmailConfig(data: { smtpHost: string; smtpPort: number; smtpUser: string; smtpPassword?: string; fromEmail: string; fromName: string }) {
+        // Check if config exists
+        const existingConfig = await prisma.emailConfig.findFirst();
+
+        if (existingConfig) {
+            return prisma.emailConfig.update({
+                where: { id: existingConfig.id },
+                data: {
+                    smtpHost: data.smtpHost,
+                    smtpPort: Number(data.smtpPort),
+                    smtpUser: data.smtpUser,
+                    // Only update password if provided
+                    ...(data.smtpPassword ? { smtpPassword: data.smtpPassword } : {}),
+                    fromEmail: data.fromEmail,
+                    fromName: data.fromName,
+                },
+            });
+        } else {
+            if (!data.smtpPassword) {
+                throw new Error('Password required for initial configuration');
+            }
+            return prisma.emailConfig.create({
+                data: {
+                    smtpHost: data.smtpHost,
+                    smtpPort: Number(data.smtpPort),
+                    smtpUser: data.smtpUser,
+                    smtpPassword: data.smtpPassword,
+                    fromEmail: data.fromEmail,
+                    fromName: data.fromName,
+                },
+            });
+        }
+    }
 }

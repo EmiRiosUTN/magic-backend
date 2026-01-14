@@ -30,4 +30,13 @@ export class AdminController {
             next(error);
         }
     }
+
+    async updateEmailConfig(req: Request, res: Response, next: NextFunction): Promise<void> {
+        try {
+            const config = await adminService.updateEmailConfig(req.body);
+            res.json(config);
+        } catch (error) {
+            next(error);
+        }
+    }
 }

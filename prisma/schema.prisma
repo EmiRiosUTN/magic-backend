@@ -26,6 +26,8 @@ model User {
   settings             UserSettings?
   conversations        Conversation[]
   createdAgents        Agent[]           @relation("CreatedAgents")
+  projects             Project[]
+  reminders            Reminder[]
 
   @@map("users")
 }
@@ -48,6 +50,7 @@ model UserSettings {
   id        String   @id @default(uuid())
   userId    String   @unique @map("user_id")
   language  Language @default(ES)
+  notificationEmail String? @map("notification_email")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -164,4 +167,80 @@ enum MessageRole {
   USER
   ASSISTANT
   SYSTEM
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Project {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  name        String
+  description String?   @db.Text
+  color       String?
+  isArchived  Boolean   @default(false) @map("is_archived")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sections    Section[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("projects")
+}
+
+model Section {
+  id          String    @id @default(uuid())
+  projectId   String    @map("project_id")
+  name        String
+  position    Int
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  cards       Card[]
+
+  @@index([projectId, position])
+  @@map("sections")
+}
+
+model Card {
+  id                String    @id @default(uuid())
+  sectionId         String    @map("section_id")
+  title             String
+  description       String?   @db.Text
+  position          Int
+  priority          Priority  @default(MEDIUM)
+  dueDate           DateTime? @map("due_date")
+  reminderEnabled   Boolean   @default(false) @map("reminder_enabled")
+  reminderDaysBefore Int?     @map("reminder_days_before")
+  reminderSent      Boolean   @default(false) @map("reminder_sent")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  section           Section   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId, position])
+  @@index([dueDate, reminderEnabled, reminderSent])
+  @@map("cards")
+}
+
+model Reminder {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  title       String
+  description String?  @db.Text
+  triggerAt   DateTime @map("trigger_at")
+  isSent      Boolean  @default(false) @map("is_sent")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, triggerAt])
+  @@map("reminders")
 }
