@@ -103,7 +103,14 @@ export class MessagesService {
         const messages = [
             {
                 role: 'system' as const,
-                content: conversation.agent.systemPrompt,
+                content: `${conversation.agent.systemPrompt}
+
+IMPORTANT LANGUAGE INSTRUCTION:
+- Detect the language the user is speaking to you (Spanish or English)
+- Always respond in the SAME language the user uses
+- If the user writes in Spanish, respond in Spanish
+- If the user writes in English, respond in English
+- Maintain the same language throughout the conversation unless the user switches`,
             },
             ...history.map((msg) => ({
                 role: msg.role.toLowerCase() as 'user' | 'assistant',

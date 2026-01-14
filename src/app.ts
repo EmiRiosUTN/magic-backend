@@ -29,14 +29,15 @@ app.use(
     })
 );
 
-// Rate limiting
-const limiter = rateLimit({
-    windowMs: env.RATE_LIMIT_WINDOW_MS,
-    max: env.RATE_LIMIT_MAX_REQUESTS,
-    message: 'Too many requests from this IP, please try again later.',
-});
-
-app.use('/api', limiter);
+// Rate limiting (only in production)
+if (env.NODE_ENV === 'production') {
+    const limiter = rateLimit({
+        windowMs: env.RATE_LIMIT_WINDOW_MS,
+        max: env.RATE_LIMIT_MAX_REQUESTS,
+        message: 'Too many requests from this IP, please try again later.',
+    });
+    app.use('/api', limiter);
+}
 
 // Body parsing middleware
 app.use(express.json());
