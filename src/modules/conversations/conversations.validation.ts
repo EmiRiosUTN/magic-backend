@@ -23,6 +23,6 @@ export const confirmCreateConversationSchema = z.object({
     body: z.object({
         agentId: z.string().uuid('Invalid agent ID'),
         title: z.string().optional(),
-        confirmDelete: z.boolean(),
+        confirmDelete: z.boolean().optional(),
     }),
 });
