@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AgentsService } from './agents.service';
-import { AuthRequest } from '../../middleware/auth';
+
 
 const agentsService = new AgentsService();
 
@@ -41,7 +41,7 @@ export class AgentsController {
         }
     }
 
-    async create(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    async create(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const agent = await agentsService.create(req.body, req.user!.userId);
             res.status(201).json(agent);

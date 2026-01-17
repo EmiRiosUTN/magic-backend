@@ -1,12 +1,12 @@
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { CardsService } from './cards.service';
-import { AuthRequest } from '../../middleware/auth';
+
 import { createCardSchema, updateCardSchema, moveCardSchema, reorderCardsSchema } from './cards.dto';
 
 const cardsService = new CardsService();
 
 export class CardsController {
-    async create(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    async create(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const validatedData = createCardSchema.parse(req.body);
             const card = await cardsService.create(req.user!.userId, validatedData);
@@ -16,7 +16,7 @@ export class CardsController {
         }
     }
 
-    async update(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    async update(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const validatedData = updateCardSchema.parse(req.body);
             const card = await cardsService.update(
@@ -30,7 +30,7 @@ export class CardsController {
         }
     }
 
-    async move(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    async move(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const validatedData = moveCardSchema.parse(req.body);
             const result = await cardsService.move(
@@ -44,7 +44,7 @@ export class CardsController {
         }
     }
 
-    async reorder(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    async reorder(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const validatedData = reorderCardsSchema.parse(req.body);
             const result = await cardsService.reorder(req.user!.userId, validatedData);
@@ -54,7 +54,7 @@ export class CardsController {
         }
     }
 
-    async delete(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    async delete(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const result = await cardsService.delete(req.params.id, req.user!.userId);
             res.json(result);

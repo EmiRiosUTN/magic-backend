@@ -1,12 +1,12 @@
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { ProjectsService } from './projects.service';
-import { AuthRequest } from '../../middleware/auth';
+
 import { createProjectSchema, updateProjectSchema } from './projects.dto';
 
 const projectsService = new ProjectsService();
 
 export class ProjectsController {
-    async create(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    async create(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const validatedData = createProjectSchema.parse(req.body);
             const project = await projectsService.create(req.user!.userId, validatedData);
@@ -16,7 +16,7 @@ export class ProjectsController {
         }
     }
 
-    async findAll(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    async findAll(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const includeArchived = req.query.includeArchived === 'true';
             const projects = await projectsService.findAll(req.user!.userId, includeArchived);
@@ -26,7 +26,7 @@ export class ProjectsController {
         }
     }
 
-    async findOne(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    async findOne(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const project = await projectsService.findOne(req.params.id, req.user!.userId);
             res.json(project);
@@ -35,7 +35,7 @@ export class ProjectsController {
         }
     }
 
-    async update(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    async update(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const validatedData = updateProjectSchema.parse(req.body);
             const project = await projectsService.update(
@@ -49,7 +49,7 @@ export class ProjectsController {
         }
     }
 
-    async archive(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    async archive(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const { isArchived } = req.body;
             const project = await projectsService.archive(
@@ -63,7 +63,7 @@ export class ProjectsController {
         }
     }
 
-    async delete(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    async delete(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const result = await projectsService.delete(req.params.id, req.user!.userId);
             res.json(result);

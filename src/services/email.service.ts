@@ -2,7 +2,7 @@ import nodemailer from 'nodemailer';
 import { prisma } from '../config/database';
 
 export class EmailService {
-    private transporter: nodemailer.Transporter | null = null;
+
 
     private async getTransporter() {
         // Always fetch fresh config to ensure we use the latest settings

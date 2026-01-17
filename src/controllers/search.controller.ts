@@ -13,13 +13,15 @@ export const searchAgents = async (req: Request, res: Response) => {
         const { query, limit } = req.query;
 
         if (!query || typeof query !== 'string') {
-            return res.status(400).json({ error: 'Query parameter is required' });
+            res.status(400).json({ error: 'Query parameter is required' });
+            return;
         }
 
         const limitNum = limit ? parseInt(limit as string, 10) : 10;
 
         if (isNaN(limitNum) || limitNum < 1 || limitNum > 50) {
-            return res.status(400).json({ error: 'Limit must be between 1 and 50' });
+            res.status(400).json({ error: 'Limit must be between 1 and 50' });
+            return;
         }
 
         const results = await searchService.searchAgents(query, limitNum);
@@ -40,7 +42,7 @@ export const searchAgents = async (req: Request, res: Response) => {
  * POST /api/search/generate-embeddings
  * Admin only
  */
-export const generateEmbeddings = async (req: Request, res: Response) => {
+export const generateEmbeddings = async (_req: Request, res: Response) => {
     try {
         const result = await searchService.generateAllEmbeddings();
 

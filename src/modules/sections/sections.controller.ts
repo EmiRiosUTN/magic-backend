@@ -1,12 +1,12 @@
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { SectionsService } from './sections.service';
-import { AuthRequest } from '../../middleware/auth';
+
 import { createSectionSchema, updateSectionSchema, reorderSectionsSchema } from './sections.dto';
 
 const sectionsService = new SectionsService();
 
 export class SectionsController {
-    async create(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    async create(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const validatedData = createSectionSchema.parse(req.body);
             const section = await sectionsService.create(req.user!.userId, validatedData);
@@ -16,7 +16,7 @@ export class SectionsController {
         }
     }
 
-    async update(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    async update(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const validatedData = updateSectionSchema.parse(req.body);
             const section = await sectionsService.update(
@@ -30,7 +30,7 @@ export class SectionsController {
         }
     }
 
-    async reorder(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    async reorder(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const validatedData = reorderSectionsSchema.parse(req.body);
             const result = await sectionsService.reorder(req.user!.userId, validatedData);
@@ -40,7 +40,7 @@ export class SectionsController {
         }
     }
 
-    async delete(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    async delete(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const result = await sectionsService.delete(req.params.id, req.user!.userId);
             res.json(result);

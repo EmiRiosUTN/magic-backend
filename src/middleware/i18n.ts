@@ -1,9 +1,9 @@
-import { Response, NextFunction } from 'express';
-import { AuthRequest } from './auth';
+import { Request, Response, NextFunction } from 'express';
+
 import { prisma } from '../config/database';
 
 export const i18nMiddleware = async (
-    req: AuthRequest,
+    req: Request,
     _res: Response,
     next: NextFunction
 ): Promise<void> => {

@@ -1,14 +1,10 @@
-import { Request, Response, NextFunction } from 'express';
-import { verifyToken, JWTPayload } from '../utils/jwt';
+import { RequestHandler } from 'express';
+import { verifyToken } from '../utils/jwt';
 
-export interface AuthRequest extends Request {
-    user?: JWTPayload;
-}
-
-export const authenticate = (
-    req: AuthRequest,
-    res: Response,
-    next: NextFunction
+export const authenticate: RequestHandler = (
+    req,
+    res,
+    next
 ): void => {
     try {
         const authHeader = req.headers.authorization;
@@ -21,17 +17,21 @@ export const authenticate = (
         const token = authHeader.substring(7);
         const payload = verifyToken(token);
 
-        req.user = payload;
+        req.user = {
+            id: payload.userId,
+            userId: payload.userId,
+            role: payload.role
+        };
         next();
     } catch (error) {
         res.status(401).json({ error: 'Invalid or expired token' });
     }
 };
 
-export const requireAdmin = (
-    req: AuthRequest,
-    res: Response,
-    next: NextFunction
+export const requireAdmin: RequestHandler = (
+    req,
+    res,
+    next
 ): void => {
     if (!req.user) {
         res.status(401).json({ error: 'Authentication required' });

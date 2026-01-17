@@ -1,11 +1,11 @@
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { ConversationsService } from './conversations.service';
-import { AuthRequest } from '../../middleware/auth';
+
 
 const conversationsService = new ConversationsService();
 
 export class ConversationsController {
-    async getAll(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    async getAll(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const { agentId } = req.query;
             const conversations = await conversationsService.getByUser(
@@ -18,7 +18,7 @@ export class ConversationsController {
         }
     }
 
-    async getById(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const { id } = req.params;
             const conversation = await conversationsService.getById(id, req.user!.userId);
@@ -32,7 +32,7 @@ export class ConversationsController {
         }
     }
 
-    async create(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    async create(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const { agentId, title, confirmDelete } = req.body;
             const result = await conversationsService.create(
@@ -60,7 +60,7 @@ export class ConversationsController {
         }
     }
 
-    async delete(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    async delete(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const { id } = req.params;
             const result = await conversationsService.delete(id, req.user!.userId);
@@ -74,7 +74,7 @@ export class ConversationsController {
         }
     }
 
-    async updateTitle(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    async updateTitle(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const { id } = req.params;
             const { title } = req.body;

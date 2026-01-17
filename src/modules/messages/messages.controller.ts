@@ -1,11 +1,11 @@
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { MessagesService } from './messages.service';
-import { AuthRequest } from '../../middleware/auth';
+
 
 const messagesService = new MessagesService();
 
 export class MessagesController {
-    async getMessages(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    async getMessages(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const { conversationId } = req.params;
             const limit = parseInt(req.query.limit as string) || 50;
@@ -28,7 +28,7 @@ export class MessagesController {
         }
     }
 
-    async sendMessage(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    async sendMessage(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const { conversationId } = req.params;
             const { content } = req.body;

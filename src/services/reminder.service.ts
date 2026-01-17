@@ -1,4 +1,4 @@
-import { prisma } from '../server';
+import { prisma } from '../config/database';
 
 export class ReminderService {
 

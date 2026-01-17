@@ -1,8 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/database';
 import { OpenAIService } from '../services/openai.service';
 import { logger } from '../utils/logger';
-
-const prisma = new PrismaClient();
+// const prisma = new PrismaClient(); // Removed local instance
 const openaiService = new OpenAIService();
 
 interface AgentWithSimilarity {
@@ -36,18 +35,19 @@ export class SearchService {
                     nameEn: true,
                     descriptionEs: true,
                     descriptionEn: true,
+                    // @ts-ignore: Embedding field missing in generated types
                     embedding: true,
                 },
             });
 
             // 3. Calculate similarity scores (filter out agents without embeddings)
             const results: AgentWithSimilarity[] = agents
-                .filter(agent => agent.embedding && agent.embedding.length > 0)
+                .filter(agent => (agent as any).embedding && (agent as any).embedding.length > 0)
                 .map((agent) => {
 
                     const similarity = openaiService.cosineSimilarity(
                         queryEmbedding,
-                        agent.embedding as number[]
+                        (agent as any).embedding as number[]
                     );
 
                     return {
@@ -95,6 +95,7 @@ export class SearchService {
             await prisma.agent.update({
                 where: { id: agentId },
                 data: {
+                    // @ts-ignore: Embedding field missing in generated types
                     embedding,
                     embeddingText,
                 },
@@ -117,7 +118,7 @@ export class SearchService {
 
             // Filter agents that don't have embeddings
             const agents = allAgents.filter(agent =>
-                !agent.embedding || (agent.embedding as number[]).length === 0
+                !(agent as any).embedding || ((agent as any).embedding as number[]).length === 0
             );
 
             let generated = 0;
