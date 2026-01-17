@@ -17,6 +17,7 @@ import adminRoutes from './modules/admin/admin.routes';
 import projectsRoutes from './modules/projects/projects.routes';
 import sectionsRoutes from './modules/sections/sections.routes';
 import cardsRoutes from './modules/cards/cards.routes';
+import searchRoutes from './routes/search.routes';
 
 const app: Application = express();
 
@@ -60,6 +61,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/projects', projectsRoutes);
 app.use('/api/sections', sectionsRoutes);
 app.use('/api/cards', cardsRoutes);
+app.use('/api/search', searchRoutes);
 
 // 404 handler
 app.use('*', (_req, res) => {

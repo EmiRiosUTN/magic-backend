@@ -90,6 +90,8 @@ model Agent {
   toolsConfig    Json?       @map("tools_config")
   isActive       Boolean     @default(true) @map("is_active")
   createdById    String?     @map("created_by_id")
+  embedding      Float[]     @default([]) // Vector embedding for semantic search
+  embeddingText  String?     @map("embedding_text") // Text used to generate embedding
   createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt      DateTime    @updatedAt @map("updated_at")
 
