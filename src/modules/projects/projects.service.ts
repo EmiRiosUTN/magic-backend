@@ -91,6 +91,11 @@ export class ProjectsService {
             throw new Error('Project not found');
         }
 
+        // Only allow deletion of archived projects
+        if (!project.isArchived) {
+            throw new Error('Only archived projects can be deleted');
+        }
+
         await prisma.project.delete({
             where: { id },
         });
