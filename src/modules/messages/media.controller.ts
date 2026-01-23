@@ -18,7 +18,7 @@ export class MediaController {
 
             res.setHeader('Content-Type', media.mimeType);
             res.setHeader('Content-Length', media.data.length);
-            res.send(media.data);
+            return res.send(media.data);
 
         } catch (error) {
             logger.error('Error fetching media:', error);
