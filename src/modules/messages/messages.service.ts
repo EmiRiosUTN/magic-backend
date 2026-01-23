@@ -176,7 +176,7 @@ IMPORTANT LANGUAGE INSTRUCTION:
 
                         const port = process.env.PORT || 3000;
                         const baseUrl = process.env.NODE_ENV === 'production'
-                            ? 'https://api.yourdomain.com'
+                            ? 'https://api.chicasguapas.ai'
                             : `http://localhost:${port}`;
 
                         const imageUrl = `${baseUrl}/api/messages/${assistantMessage.id}/media`;
