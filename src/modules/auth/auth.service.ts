@@ -12,17 +12,17 @@ export class AuthService {
         });
 
         if (!user) {
-            throw new Error('Invalid credentials');
+            throw new Error('La contraseña o email son incorrectos');
         }
 
         if (!user.isActive) {
-            throw new Error('Account is inactive');
+            throw new Error('La cuenta está inactiva');
         }
 
         const isPasswordValid = await comparePassword(password, user.passwordHash);
 
         if (!isPasswordValid) {
-            throw new Error('Invalid credentials');
+            throw new Error('La contraseña o email son incorrectos');
         }
 
         const token = generateToken({
@@ -56,7 +56,7 @@ export class AuthService {
         });
 
         if (existingUser) {
-            throw new Error('User with this email already exists');
+            throw new Error('Ya existe un usuario con este email');
         }
 
         const passwordHash = await hashPassword(data.password);

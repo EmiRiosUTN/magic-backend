@@ -5,6 +5,8 @@ import rateLimit from 'express-rate-limit';
 import { env } from './config/env';
 import { errorHandler } from './middleware/errorHandler';
 
+import path from 'path';
+
 // Import routes
 import authRoutes from './modules/auth/auth.routes';
 import usersRoutes from './modules/users/users.routes';
@@ -22,7 +24,9 @@ import searchRoutes from './routes/search.routes';
 const app: Application = express();
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 app.use(
     cors({
         origin: env.CORS_ORIGIN,
@@ -48,6 +52,9 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Static files
+app.use('/uploads', express.static(path.join(process.cwd(), 'public/uploads')));
 
 // API routes
 app.use('/api/auth', authRoutes);

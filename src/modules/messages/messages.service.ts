@@ -1,6 +1,7 @@
 import { prisma } from '../../config/database';
 import { OpenAIService } from '../../services/openai.service';
 import { GeminiService } from '../../services/gemini.service';
+import { logger } from '../../utils/logger';
 
 const openaiService = new OpenAIService();
 const geminiService = new GeminiService();
@@ -79,6 +80,22 @@ export class MessagesService {
             );
         }
 
+        // Check for duplicate requests (Idempotency / Debounce)
+        // If the last message was from the user, has the same content, and was created recently (< 60s),
+        // we assume it's a double-submit or retry from the frontend/browser.
+        const lastMessage = await prisma.message.findFirst({
+            where: { conversationId },
+            orderBy: { createdAt: 'desc' },
+        });
+
+        if (lastMessage &&
+            lastMessage.role === 'USER' &&
+            lastMessage.content === content &&
+            (new Date().getTime() - lastMessage.createdAt.getTime() < 60000)
+        ) {
+            throw new Error('Please wait, the previous message is still being processed.');
+        }
+
         // Save user message
         const userMessage = await prisma.message.create({
             data: {
@@ -118,7 +135,130 @@ IMPORTANT LANGUAGE INSTRUCTION:
             })),
         ];
 
-        // Get AI response based on provider
+        // Check for Image Generation Tool (Nano Banana Agent)
+        const toolsConfig = conversation.agent.toolsConfig as { tools?: string[] } | null;
+        if (conversation.agent.hasTools && toolsConfig?.tools?.includes('generateImage')) {
+            try {
+                // Nano Banana Image Logic
+                // Pass full message history so the agent has context (iterations)
+                const { content: textContent, media } = await geminiService.generateImage(messages);
+
+                // Sanitize textContent: Remove hallucinated image links that the LLM might have generated 
+                // by mimicking the conversation history. We only want the REAL link we append later.
+                const sanitizedContent = textContent.replace(/!\[Generated Image\]\(.*?\)/g, '').trim();
+
+                let finalContent = sanitizedContent;
+                const mediaData = media.length > 0 ? media[0] : null;
+
+                // Create the message with nested media if present
+                // Create the message (Standard scalars)
+                // Use transaction to ensure atomicity.
+                const { userMessageResponse, assistantMessageResponse } = await prisma.$transaction(async (tx: any) => {
+                    // Create the message (Standard scalars)
+                    const assistantMessage = await tx.message.create({
+                        data: {
+                            conversationId,
+                            role: 'ASSISTANT',
+                            content: finalContent,
+                            tokensUsed: 0,
+                        },
+                    });
+
+                    if (mediaData) {
+                        // Create media relation manually
+                        await tx.messageMedia.create({
+                            data: {
+                                messageId: assistantMessage.id,
+                                mimeType: mediaData.mimeType,
+                                data: mediaData.data
+                            }
+                        });
+
+                        const port = process.env.PORT || 3000;
+                        const baseUrl = process.env.NODE_ENV === 'production'
+                            ? 'https://api.yourdomain.com'
+                            : `http://localhost:${port}`;
+
+                        const imageUrl = `${baseUrl}/api/messages/${assistantMessage.id}/media`;
+                        finalContent += `\n\n![Generated Image](${imageUrl})`;
+
+                        await tx.message.update({
+                            where: { id: assistantMessage.id },
+                            data: { content: finalContent }
+                        });
+
+                        assistantMessage.content = finalContent;
+                    }
+
+                    await tx.conversation.update({
+                        where: { id: conversationId },
+                        data: {
+                            messageCount: { increment: 2 },
+                            lastMessageAt: new Date(),
+                            title: conversation.messageCount === 0
+                                ? content.substring(0, 50) + (content.length > 50 ? '...' : '')
+                                : conversation.title,
+                        },
+                    });
+
+                    return {
+                        userMessageResponse: {
+                            id: userMessage.id,
+                            role: userMessage.role,
+                            content: userMessage.content,
+                            createdAt: userMessage.createdAt,
+                        },
+                        assistantMessageResponse: {
+                            id: assistantMessage.id,
+                            role: assistantMessage.role,
+                            content: assistantMessage.content,
+                            createdAt: assistantMessage.createdAt,
+                        },
+                    };
+                });
+
+                return {
+                    userMessage: userMessageResponse,
+                    assistantMessage: assistantMessageResponse,
+                };
+
+            } catch (error: any) {
+                console.error('CRITICAL GENERATION ERROR:', error);
+                // Detailed logging to find out WHY it failed despite finding media
+                if (error instanceof Error) {
+                    logger.error(`Generation transaction failed: ${error.message}\nStack: ${error.stack}`);
+                }
+
+                const errorMessage = "Lo siento, hubo un error generando la imagen. Por favor intenta de nuevo.";
+
+                const assistantMessage = await prisma.message.create({
+                    data: {
+                        conversationId,
+                        role: 'ASSISTANT',
+                        content: errorMessage,
+                        tokensUsed: 0,
+                    },
+                });
+
+                return {
+                    userMessage: {
+                        id: userMessage.id,
+                        role: userMessage.role,
+                        content: userMessage.content,
+                        createdAt: userMessage.createdAt,
+                    },
+                    assistantMessage: {
+                        id: assistantMessage.id,
+                        role: assistantMessage.role,
+                        content: assistantMessage.content,
+                        createdAt: assistantMessage.createdAt,
+                    },
+                };
+            }
+        }
+
+        // STANDARD CHAT LOGIC
+
         let aiResponse: { content: string; tokensUsed: number | null };
 
         if (conversation.agent.aiProvider === 'OPENAI') {

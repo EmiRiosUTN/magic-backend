@@ -4,10 +4,16 @@ import { validate } from '../../middleware/validation';
 import { authenticate } from '../../middleware/auth';
 import { sendMessageSchema, getMessagesSchema } from './messages.validation';
 
+import { mediaRoutes } from './media.routes';
+
 const router = Router();
 const messagesController = new MessagesController();
 
+// Mount media routes first to avoid ID collisions
+router.use('/', mediaRoutes);
+
 // All routes require authentication
+router.get('/media/download', authenticate, messagesController.downloadMedia.bind(messagesController));
 router.get('/:conversationId', authenticate, validate(getMessagesSchema), messagesController.getMessages.bind(messagesController));
 router.post('/:conversationId', authenticate, validate(sendMessageSchema), messagesController.sendMessage.bind(messagesController));
 
