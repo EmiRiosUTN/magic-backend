@@ -49,7 +49,7 @@ export class MessagesService {
         };
     }
 
-    async sendMessage(conversationId: string, userId: string, content: string) {
+    async sendMessage(conversationId: string, userId: string, content: string, media?: { buffer: Buffer, mimeType: string }) {
         // Verify conversation belongs to user
         const conversation = await prisma.conversation.findFirst({
             where: {
@@ -102,6 +102,12 @@ export class MessagesService {
                 conversationId,
                 role: 'USER',
                 content,
+                media: media ? {
+                    create: {
+                        mimeType: media.mimeType,
+                        data: media.buffer
+                    }
+                } : undefined
             },
         });
 
@@ -111,6 +117,7 @@ export class MessagesService {
             where: { conversationId },
             orderBy: { createdAt: 'desc' },
             take: historyLimit,
+            include: { media: true },
         });
 
         // Reverse to get chronological order
@@ -132,6 +139,10 @@ IMPORTANT LANGUAGE INSTRUCTION:
             ...history.map((msg) => ({
                 role: msg.role.toLowerCase() as 'user' | 'assistant',
                 content: msg.content,
+                media: msg.media ? {
+                    mimeType: msg.media.mimeType,
+                    data: msg.media.data
+                } : undefined
             })),
         ];
 

@@ -11,7 +11,11 @@ export interface ChatMessage {
 
 export class GeminiService {
     async chat(
-        messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
+        messages: Array<{
+            role: 'system' | 'user' | 'assistant';
+            content: string;
+            media?: { mimeType: string; data: Buffer }
+        }>,
         model: string = 'gemini-pro'
     ): Promise<{
         content: string;
@@ -22,10 +26,21 @@ export class GeminiService {
             const systemPrompt = messages.find((m) => m.role === 'system')?.content || '';
             const history = messages
                 .filter((m) => m.role !== 'system')
-                .map((m) => ({
-                    role: m.role === 'user' ? 'user' : 'model',
-                    parts: [{ text: m.content }],
-                }));
+                .map((m) => {
+                    const parts: any[] = [{ text: m.content }];
+                    if (m.media) {
+                        parts.push({
+                            inlineData: {
+                                mimeType: m.media.mimeType,
+                                data: m.media.data.toString('base64')
+                            }
+                        });
+                    }
+                    return {
+                        role: m.role === 'user' ? 'user' : 'model',
+                        parts: parts,
+                    };
+                });
 
             const lastUserMessage = history.pop();
 
@@ -41,8 +56,8 @@ export class GeminiService {
             });
 
             const messageText = systemPrompt
-                ? `${systemPrompt}\n\n${lastUserMessage.parts[0].text}`
-                : lastUserMessage.parts[0].text;
+                ? [{ text: systemPrompt }, ...lastUserMessage.parts]
+                : lastUserMessage.parts;
 
             const result = await chat.sendMessage(messageText);
             const response = result.response;
@@ -57,7 +72,7 @@ export class GeminiService {
         }
     }
 
-    async generateImage(messages: Array<{ role: string; content: string }>): Promise<{ content: string; media: { mimeType: string; data: Buffer }[] }> {
+    async generateImage(messages: Array<{ role: string; content: string; media?: { mimeType: string; data: Buffer } }>): Promise<{ content: string; media: { mimeType: string; data: Buffer }[] }> {
         try {
             const modelName = "gemini-2.5-flash-image";
             const apiKey = env.GEMINI_API_KEY;
@@ -71,10 +86,21 @@ export class GeminiService {
             // Map roles: 'user' -> 'user', 'assistant' -> 'model'
             const contents = messages
                 .filter(m => m.role !== 'system')
-                .map(m => ({
-                    role: m.role === 'user' ? 'user' : 'model',
-                    parts: [{ text: m.content }]
-                }));
+                .map(m => {
+                    const parts: any[] = [{ text: m.content }];
+                    if (m.media) {
+                        parts.push({
+                            inlineData: {
+                                mimeType: m.media.mimeType,
+                                data: m.media.data.toString('base64')
+                            }
+                        });
+                    }
+                    return {
+                        role: m.role === 'user' ? 'user' : 'model',
+                        parts: parts
+                    };
+                });
 
             const payload = {
                 contents: contents,

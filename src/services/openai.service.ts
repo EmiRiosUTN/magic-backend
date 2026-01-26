@@ -12,14 +12,39 @@ export interface ChatMessage {
 }
 
 export class OpenAIService {
-    async chat(messages: ChatMessage[], model: string = 'gpt-4o-mini'): Promise<{
+    async chat(messages: Array<{
+        role: 'system' | 'user' | 'assistant';
+        content: string;
+        media?: { mimeType: string; data: Buffer }
+    }>, model: string = 'gpt-4o-mini'): Promise<{
         content: string;
         tokensUsed: number;
     }> {
         try {
+            const openAIMessages = messages.map(msg => {
+                if (msg.role !== 'system' && msg.media) {
+                    return {
+                        role: msg.role,
+                        content: [
+                            { type: 'text', text: msg.content },
+                            {
+                                type: 'image_url',
+                                image_url: {
+                                    url: `data:${msg.media.mimeType};base64,${msg.media.data.toString('base64')}`
+                                }
+                            }
+                        ]
+                    } as any;
+                }
+                return {
+                    role: msg.role,
+                    content: msg.content
+                };
+            });
+
             const response = await openai.chat.completions.create({
                 model,
-                messages,
+                messages: openAIMessages,
             });
 
             return {

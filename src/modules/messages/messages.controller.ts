@@ -32,11 +32,18 @@ export class MessagesController {
         try {
             const { conversationId } = req.params;
             const { content } = req.body;
+            const file = req.file;
+
+            const media = file ? {
+                buffer: file.buffer,
+                mimeType: file.mimetype
+            } : undefined;
 
             const result = await messagesService.sendMessage(
                 conversationId,
                 req.user!.userId,
-                content
+                content,
+                media
             );
 
             res.status(201).json(result);
