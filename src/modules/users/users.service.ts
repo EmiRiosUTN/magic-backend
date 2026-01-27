@@ -23,6 +23,14 @@ export class UsersService {
             subscriptionType: user.subscriptionType,
             language: user.settings?.language || 'ES',
             notificationEmail: user.settings?.notificationEmail,
+            messageCount: await prisma.message.count({
+                where: {
+                    role: 'USER',
+                    conversation: {
+                        userId: user.id
+                    }
+                }
+            })
         };
     }
 

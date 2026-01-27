@@ -80,9 +80,22 @@ export class MessagesService {
             );
         }
 
-        // Check for duplicate requests (Idempotency / Debounce)
-        // If the last message was from the user, has the same content, and was created recently (< 60s),
-        // we assume it's a double-submit or retry from the frontend/browser.
+        const globalMessageCount = await prisma.message.count({
+            where: {
+                role: 'USER',
+                conversation: {
+                    userId: userId
+                }
+            }
+        });
+
+        const GLOBAL_LIMIT = 30;
+        if (globalMessageCount >= GLOBAL_LIMIT) {
+             throw new Error(
+                `Has alcanzado el límite global de ${GLOBAL_LIMIT} consultas permitidas en total.`
+            );
+        }
+
         const lastMessage = await prisma.message.findFirst({
             where: { conversationId },
             orderBy: { createdAt: 'desc' },
@@ -146,26 +159,17 @@ IMPORTANT LANGUAGE INSTRUCTION:
             })),
         ];
 
-        // Check for Image Generation Tool (Nano Banana Agent)
         const toolsConfig = conversation.agent.toolsConfig as { tools?: string[] } | null;
         if (conversation.agent.hasTools && toolsConfig?.tools?.includes('generateImage')) {
             try {
-                // Nano Banana Image Logic
-                // Pass full message history so the agent has context (iterations)
                 const { content: textContent, media } = await geminiService.generateImage(messages);
 
-                // Sanitize textContent: Remove hallucinated image links that the LLM might have generated 
-                // by mimicking the conversation history. We only want the REAL link we append later.
                 const sanitizedContent = textContent.replace(/!\[Generated Image\]\(.*?\)/g, '').trim();
 
                 let finalContent = sanitizedContent;
                 const mediaData = media.length > 0 ? media[0] : null;
 
-                // Create the message with nested media if present
-                // Create the message (Standard scalars)
-                // Use transaction to ensure atomicity.
                 const { userMessageResponse, assistantMessageResponse } = await prisma.$transaction(async (tx: any) => {
-                    // Create the message (Standard scalars)
                     const assistantMessage = await tx.message.create({
                         data: {
                             conversationId,
