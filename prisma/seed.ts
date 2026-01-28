@@ -170,6 +170,36 @@ async function main() {
         console.log('✅ Created sample agent: Asistente de Programación');
     }
 
+    const videoCategory = await prisma.category.findFirst({
+        where: { nameEs: 'Video y Multimedia' },
+    });
+
+    if (videoCategory) {
+        await prisma.agent.upsert({
+            where: { id: '00000000-0000-0000-0000-000000000003' },
+            update: {
+                hasTools: true,
+                toolsConfig: { tools: ['generateVideo'] },
+            },
+            create: {
+                id: '00000000-0000-0000-0000-000000000003',
+                categoryId: videoCategory.id,
+                nameEs: 'Generar vídeos',
+                nameEn: 'Video Generator',
+                descriptionEs: 'Genera videos impresionantes a partir de texto con Veo',
+                descriptionEn: 'Generate impressive videos from text with Veo',
+                systemPrompt:
+                    'Eres un asistente experto en creación de video. Ayudas a los usuarios a generar videos a partir de sus descripciones. Tu objetivo es convertir sus ideas en prompts detallados para generar el mejor video posible. Siempre respondes en el idioma en que te hablan.',
+                aiProvider: 'GEMINI',
+                modelName: 'veo-3.1-generate-preview',
+                hasTools: true,
+                toolsConfig: { tools: ['generateVideo'] },
+                createdById: admin.id,
+            },
+        });
+        console.log('✅ Created sample agent: Generador de Videos (Veo 3.1)');
+    }
+
     console.log('🎉 Database seed completed!');
     console.log('\n📝 Admin credentials:');
     console.log('   Email: admin@magicai.com');

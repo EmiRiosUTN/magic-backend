@@ -91,7 +91,7 @@ export class MessagesService {
 
         const GLOBAL_LIMIT = 30;
         if (globalMessageCount >= GLOBAL_LIMIT) {
-             throw new Error(
+            throw new Error(
                 `Has alcanzado el límite global de ${GLOBAL_LIMIT} consultas permitidas en total.`
             );
         }
@@ -245,6 +245,122 @@ IMPORTANT LANGUAGE INSTRUCTION:
                 }
 
                 const errorMessage = "Lo siento, hubo un error generando la imagen. Por favor intenta de nuevo.";
+
+                const assistantMessage = await prisma.message.create({
+                    data: {
+                        conversationId,
+                        role: 'ASSISTANT',
+                        content: errorMessage,
+                        tokensUsed: 0,
+                    },
+                });
+
+                return {
+                    userMessage: {
+                        id: userMessage.id,
+                        role: userMessage.role,
+                        content: userMessage.content,
+                        createdAt: userMessage.createdAt,
+                    },
+                    assistantMessage: {
+                        id: assistantMessage.id,
+                        role: assistantMessage.role,
+                        content: assistantMessage.content,
+                        createdAt: assistantMessage.createdAt,
+                    },
+                };
+            }
+        }
+
+        if (conversation.agent.hasTools && toolsConfig?.tools?.includes('generateVideo')) {
+            try {
+                // Extract prompt from last user message
+                const lastUserMsg = messages.slice().reverse().find(m => m.role === 'user');
+                const prompt = lastUserMsg ? lastUserMsg.content : messages[messages.length - 1].content;
+
+                const { content: textContent, media } = await geminiService.generateVideo(prompt);
+
+                const sanitizedContent = textContent.replace(/!\[Generated Video\]\(.*?\)/g, '').trim();
+
+                let finalContent = sanitizedContent;
+                const mediaData = media.length > 0 ? media[0] : null;
+
+                const { userMessageResponse, assistantMessageResponse } = await prisma.$transaction(async (tx: any) => {
+                    const assistantMessage = await tx.message.create({
+                        data: {
+                            conversationId,
+                            role: 'ASSISTANT',
+                            content: finalContent,
+                            tokensUsed: 0,
+                        },
+                    });
+
+                    if (mediaData) {
+                        // Create media relation manually
+                        await tx.messageMedia.create({
+                            data: {
+                                messageId: assistantMessage.id,
+                                mimeType: mediaData.mimeType,
+                                data: mediaData.data
+                            }
+                        });
+
+                        const port = process.env.PORT || 3000;
+                        const baseUrl = process.env.NODE_ENV === 'production'
+                            ? 'https://api.chicasguapas.ai'
+                            : `http://localhost:${port}`;
+
+                        // Append #.mp4 so frontend detects it as video
+                        const videoUrl = `${baseUrl}/api/messages/${assistantMessage.id}/media#.mp4`;
+                        finalContent += `\n\n![Generated Video](${videoUrl})`;
+
+                        await tx.message.update({
+                            where: { id: assistantMessage.id },
+                            data: { content: finalContent }
+                        });
+
+                        assistantMessage.content = finalContent;
+                    }
+
+                    await tx.conversation.update({
+                        where: { id: conversationId },
+                        data: {
+                            messageCount: { increment: 2 },
+                            lastMessageAt: new Date(),
+                            title: conversation.messageCount === 0
+                                ? content.substring(0, 50) + (content.length > 50 ? '...' : '')
+                                : conversation.title,
+                        },
+                    });
+
+                    return {
+                        userMessageResponse: {
+                            id: userMessage.id,
+                            role: userMessage.role,
+                            content: userMessage.content,
+                            createdAt: userMessage.createdAt,
+                        },
+                        assistantMessageResponse: {
+                            id: assistantMessage.id,
+                            role: assistantMessage.role,
+                            content: assistantMessage.content,
+                            createdAt: assistantMessage.createdAt,
+                        },
+                    };
+                });
+
+                return {
+                    userMessage: userMessageResponse,
+                    assistantMessage: assistantMessageResponse,
+                };
+
+            } catch (error: any) {
+                console.error('CRITICAL VIDEO GENERATION ERROR:', error);
+                if (error instanceof Error) {
+                    logger.error(`Video Generation transaction failed: ${error.message}\nStack: ${error.stack}`);
+                }
+
+                const errorMessage = "Lo siento, hubo un error generando el video. Por favor intenta de nuevo.";
 
                 const assistantMessage = await prisma.message.create({
                     data: {

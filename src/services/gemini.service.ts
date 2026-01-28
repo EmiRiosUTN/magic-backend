@@ -166,4 +166,130 @@ export class GeminiService {
             throw new Error(`Failed to generate image with Gemini: ${error.message}`);
         }
     }
+
+    async generateVideo(prompt: string): Promise<{ content: string; media: { mimeType: string; data: Buffer }[] }> {
+        try {
+            // Check if VEO_KEY is set, otherwise warn
+            if (!process.env.VEO_KEY) {
+                logger.warn('VEO_KEY is not set, using default GEMINI_KEY which might not have access.');
+            }
+
+            const apiKey = process.env.VEO_KEY || env.GEMINI_API_KEY;
+            const baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
+            const modelName = 'veo-3.1-generate-preview';
+
+            // 1. Initiate Long-Running Operation
+            const initialUrl = `${baseUrl}/models/${modelName}:predictLongRunning?key=${apiKey}`;
+
+            const payload = {
+                instances: [
+                    { prompt: prompt }
+                ],
+                parameters: {
+                    aspectRatio: "16:9",
+                    negativePrompt: "cartoon, drawing, low quality, glitch, distorted, blurry"
+                }
+            };
+
+            logger.info(`Starting Veo 3.1 video generation with prompt: ${prompt.substring(0, 50)}...`);
+
+            const initialResponse = await fetch(initialUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!initialResponse.ok) {
+                const errText = await initialResponse.text();
+                throw new Error(`Veo Init API Error ${initialResponse.status}: ${errText}`);
+            }
+
+            const initialData = await initialResponse.json() as any;
+            const operationName = initialData.name; // e.g., "operations/..."
+
+            if (!operationName) {
+                throw new Error('No operation name returned from Veo 3.1 initialization');
+            }
+
+            logger.info(`Veo operation started: ${operationName}`);
+
+            // 2. Poll for completion
+            let videoUri: string | null = null;
+            let attempts = 0;
+            const maxAttempts = 60; // 10 minutes (10s interval)
+
+            while (attempts < maxAttempts) {
+                // Wait 10 seconds
+                await new Promise(resolve => setTimeout(resolve, 10000));
+
+                const pollUrl = `${baseUrl}/${operationName}?key=${apiKey}`;
+                const pollResponse = await fetch(pollUrl);
+
+                if (!pollResponse.ok) {
+                    const errText = await pollResponse.text();
+                    logger.error(`Polling error: ${errText}`);
+                    // Continue polling? Or abort? Let's throw for now as infrastructure seems unstable if this fails
+                    // throw new Error(`Veo Polling API Error ${pollResponse.status}: ${errText}`);
+                    continue;
+                }
+
+                const pollData = await pollResponse.json() as any;
+
+                if (pollData.done) {
+                    if (pollData.error) {
+                        throw new Error(`Veo generation failed: ${JSON.stringify(pollData.error)}`);
+                    }
+
+                    // Extract logic based on REST response structure for Veo 3.1
+                    // Structure: response.generateVideoResponse.generatedSamples[0].video.uri
+                    const samples = pollData.response?.generateVideoResponse?.generatedSamples;
+                    if (samples && samples.length > 0 && samples[0].video?.uri) {
+                        videoUri = samples[0].video.uri;
+                        break;
+                    } else {
+                        // Sometimes structure might be different or empty?
+                        throw new Error('Operation done but no video URI found in response');
+                    }
+                }
+
+                attempts++;
+                logger.info(`Waiting for Veo video... Attempt ${attempts}/${maxAttempts}`);
+            }
+
+            if (!videoUri) {
+                throw new Error('Video generation timed out or failed to return a URI');
+            }
+
+            logger.info(`Video generated! Downloading from: ${videoUri}`);
+
+            // 3. Download the video
+            // Check if URI needs API key? Docs say: curl -H "x-goog-api-key: $KEY" "URI"
+            const downloadResponse = await fetch(videoUri, {
+                headers: {
+                    'x-goog-api-key': apiKey
+                }
+            });
+
+            if (!downloadResponse.ok) {
+                throw new Error(`Failed to download generated video: ${downloadResponse.statusText}`);
+            }
+
+            const arrayBuffer = await downloadResponse.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+
+            logger.info(`Video downloaded successfully. Size: ${buffer.length} bytes`);
+
+            return {
+                content: "¡Video generado exitosamente!",
+                media: [{
+                    mimeType: 'video/mp4',
+                    data: buffer
+                }]
+            };
+
+        } catch (error: any) {
+            logger.error('Veo Video Generation error:', error);
+            throw new Error(`Failed to generate video with Veo: ${error.message}`);
+        }
+    }
 }
